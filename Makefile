@@ -1,13 +1,6 @@
-# ==============================================================================
-# Makefile: Active Eco-Assist Battery Management System (BMS)
-# Architecture: Modular C99 | Strict HAL Decoupling | MISRA C Compliance
-# Flags: -Wall -Wextra -Werror -pedantic -std=c99
-# ==============================================================================
-
 CC      ?= gcc
 CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c99 -O2
 
-# Detect OS for binary extensions
 ifeq ($(OS),Windows_NT)
     TARGET      := bms_simulator.exe
     TEST_TARGET := test_runner.exe
@@ -18,7 +11,6 @@ else
     RM          := rm -f
 endif
 
-# Source files
 CORE_SRCS   := bms_core.c
 SIM_SRCS    := bms_core.c hal_sensors.c hal_display.c main.c
 TEST_SRCS   := bms_core.c test_bms_core.c

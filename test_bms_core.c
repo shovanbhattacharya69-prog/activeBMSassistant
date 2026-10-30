@@ -1,24 +1,8 @@
-/**
- * @file test_bms_core.c
- * @brief Unit & Qualification Test Suite for Active Eco-Assist BMS Core.
- *
- * @note Implements automated regression verification aligned with ISO 26262
- *       Part 6 (Software Unit Verification). Zero dynamic memory allocation.
- *
- * @author Staff Embedded Automotive Software Engineer
- * @date 2026-10-30
- * @copyright Automotive Tier-1 Supplier Specification
- */
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include "bms_types.h"
 #include "bms_core.h"
-
-/* ========================================================================== */
-/* Test Harness Infrastructure                                                */
-/* ========================================================================== */
 
 static uint32_t s_tests_run    = 0U;
 static uint32_t s_tests_passed = 0U;
@@ -33,13 +17,6 @@ static uint32_t s_tests_passed = 0U;
     } \
 } while(0)
 
-/* ========================================================================== */
-/* Test Cases                                                                 */
-/* ========================================================================== */
-
-/**
- * @brief Verifies defensive behavior against NULL pointers (MISRA Rule 1.1).
- */
 static void test_null_pointer_defensive(void)
 {
     printf("\n=== TEST CASE: NULL Pointer Defensive Boundary Checks ===\n");
@@ -62,9 +39,6 @@ static void test_null_pointer_defensive(void)
                 "bms_core_is_contactor_closed fails safe (false) on NULL");
 }
 
-/**
- * @brief Verifies array traversal mathematics (min, max, delta, pack voltage).
- */
 static void test_pointer_array_metrics(void)
 {
     printf("\n=== TEST CASE: Pointer-Based Cell Array Traversal Metrics ===\n");
@@ -73,10 +47,9 @@ static void test_pointer_array_metrics(void)
 
     (void)bms_core_init(&inst);
 
-    /* Populate telemetry with known gradient: 3600mV to 3750mV */
     for (uint8_t i = 0U; i < BMS_CELL_COUNT; ++i) {
         telem.cell_voltages_mv[i] = (uint16_t)(3600U + (uint16_t)(i * 10U));
-        telem.cell_temperatures_ddegc[i] = 250; /* 25.0 degC */
+        telem.cell_temperatures_ddegc[i] = 250;
     }
     telem.pack_current_ma         = 10000;
     telem.road_gradient_tenth_pct = 0;
@@ -97,9 +70,6 @@ static void test_pointer_array_metrics(void)
     TEST_ASSERT(p_met->avg_temp_ddegc == 250, "Avg temp is 25.0 degC");
 }
 
-/**
- * @brief Verifies that a 2-tick transient noise spike is filtered without tripping.
- */
 static void test_sensor_debounce_noise_rejection(void)
 {
     printf("\n=== TEST CASE: Transient EMI Noise Rejection (2-Tick Spike) ===\n");
@@ -108,10 +78,9 @@ static void test_sensor_debounce_noise_rejection(void)
 
     (void)bms_core_init(&inst);
 
-    /* Nominal telemetry */
     for (uint8_t i = 0U; i < BMS_CELL_COUNT; ++i) {
         telem.cell_voltages_mv[i] = 3800U;
-        telem.cell_temperatures_ddegc[i] = 300; /* 30.0 degC */
+        telem.cell_temperatures_ddegc[i] = 300;
     }
     telem.pack_current_ma         = 20000;
     telem.road_gradient_tenth_pct = 0;
@@ -120,22 +89,18 @@ static void test_sensor_debounce_noise_rejection(void)
     telem.brake_pedal_pct         = 0U;
     telem.sensor_comm_ok          = true;
 
-    /* Tick 1: Nominal baseline -> SYS_NORMAL */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Init step advances to SYS_NORMAL");
 
-    /* Tick 2: Transient Noise Spike (72.0 degC on Cell #3) - Persist Count 1 */
     telem.cell_temperatures_ddegc[3] = 720;
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Noise Tick 1: System remains in SYS_NORMAL");
     TEST_ASSERT(inst.debounce.overtemp_fault_ticks == 1U, "Debounce count incremented to 1/3");
 
-    /* Tick 3: Transient Noise Spike Continues - Persist Count 2 */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Noise Tick 2: System remains in SYS_NORMAL");
     TEST_ASSERT(inst.debounce.overtemp_fault_ticks == 2U, "Debounce count incremented to 2/3");
 
-    /* Tick 4: Noise vanishes! Cell #3 returns to 30.0 degC */
     telem.cell_temperatures_ddegc[3] = 300;
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Glitch ended: System STILL in SYS_NORMAL (NO TRIP)");
@@ -143,9 +108,6 @@ static void test_sensor_debounce_noise_rejection(void)
     TEST_ASSERT(bms_core_is_contactor_closed(&inst) == true, "Contactors remain safely CLOSED");
 }
 
-/**
- * @brief Verifies that 3 consecutive ticks of overtemperature latch critical fault.
- */
 static void test_sensor_debounce_trip_and_interlock(void)
 {
     printf("\n=== TEST CASE: 3-Tick Debounced Fault Trip & Contactor Interlock ===\n");
@@ -165,22 +127,17 @@ static void test_sensor_debounce_trip_and_interlock(void)
     telem.brake_pedal_pct         = 0U;
     telem.sensor_comm_ok          = true;
 
-    /* Step 1: Boot to normal */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "System entered SYS_NORMAL");
 
-    /* Sustained fault: 68.0 degC on cell #5 */
     telem.cell_temperatures_ddegc[5] = 680;
 
-    /* Fault Tick 1 */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Fault Tick 1/3: No trip yet");
 
-    /* Fault Tick 2 */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Fault Tick 2/3: No trip yet");
 
-    /* Fault Tick 3: TRIP! */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_CRITICAL_FAULT,
                 "Fault Tick 3/3: FSM successfully transitioned to SYS_CRITICAL_FAULT");
@@ -192,9 +149,6 @@ static void test_sensor_debounce_trip_and_interlock(void)
                 "Traction power output throttled to 0%");
 }
 
-/**
- * @brief Verifies Active Eco-Assist regen advisory activation on steep descents.
- */
 static void test_eco_assist_regen_advisory(void)
 {
     printf("\n=== TEST CASE: Active Eco-Assist Downhill Incline Regen Biasing ===\n");
@@ -214,11 +168,9 @@ static void test_eco_assist_regen_advisory(void)
     telem.brake_pedal_pct         = 0U;
     telem.sensor_comm_ok          = true;
 
-    /* Advance to SYS_NORMAL */
     (void)bms_core_step(&inst, &telem);
     TEST_ASSERT(bms_core_get_state(&inst) == SYS_NORMAL, "Nominal baseline established");
 
-    /* Enter steep mountain descent: -8.5% grade, 65 km/h, driver lifts off accelerator */
     telem.road_gradient_tenth_pct = -85;
     telem.vehicle_speed_tenth_kph = 650U;
     telem.accelerator_pedal_pct   = 0U;
@@ -232,10 +184,6 @@ static void test_eco_assist_regen_advisory(void)
     TEST_ASSERT(inst.regen_advisory == REGEN_ADVISORY_DOWNHILL_GRADE,
                 "Advisory mode correctly identified as REGEN_ADVISORY_DOWNHILL_GRADE");
 }
-
-/* ========================================================================== */
-/* Main Test Runner                                                           */
-/* ========================================================================== */
 
 int main(void)
 {

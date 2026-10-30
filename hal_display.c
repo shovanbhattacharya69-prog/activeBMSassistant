@@ -1,52 +1,21 @@
-/**
- * @file hal_display.c
- * @brief Terminal-based Digital Cockpit and CAN Display Simulator.
- *
- * @note This is the ONLY file in the entire BMS system permitted to invoke
- *       <stdio.h> / printf. In an embedded vehicle platform, this file is
- *       swapped out for a CAN bus serializer or direct GPU framebuffer driver
- *       without touching bms_core.c.
- *
- * @author Staff Embedded Automotive Software Engineer
- * @date 2026-10-30
- * @copyright Automotive Tier-1 Supplier Specification
- */
-
 #include <stdio.h>
 #include "hal_display.h"
-
-/* ========================================================================== */
-/* ANSI Terminal Color Codes                                                  */
-/* ========================================================================== */
 
 #define ANSI_RESET          "\033[0m"
 #define ANSI_BOLD           "\033[1m"
 #define ANSI_RED            "\033[1;31m"
 #define ANSI_GREEN          "\033[1;32m"
 #define ANSI_YELLOW         "\033[1;33m"
-#define ANSI_BLUE           "\033[1;34m"
-#define ANSI_MAGENTA        "\033[1;35m"
 #define ANSI_CYAN           "\033[1;36m"
 #define ANSI_WHITE          "\033[1;37m"
 #define ANSI_BG_RED         "\033[41;1;37m"
 #define ANSI_BG_YELLOW      "\033[43;1;30m"
 #define ANSI_BG_CYAN        "\033[46;1;30m"
 
-/* ========================================================================== */
-/* Private Helper Prototypes                                                  */
-/* ========================================================================== */
-
 static const char * bms_state_to_string(const bms_state_t state);
 static const char * bms_state_to_color(const bms_state_t state);
 static void print_soc_bar(const uint16_t soc_deci_pct);
 
-/* ========================================================================== */
-/* Public Interface Implementation                                            */
-/* ========================================================================== */
-
-/**
- * @brief Initializes the display abstraction layer.
- */
 bms_status_t hal_display_init(void)
 {
     printf("\n%s================================================================================%s\n", ANSI_CYAN, ANSI_RESET);
@@ -56,9 +25,6 @@ bms_status_t hal_display_init(void)
     return BMS_STATUS_OK;
 }
 
-/**
- * @brief Renders a single time-tick dashboard frame to the output console.
- */
 bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
                                      const bms_sensor_telemetry_t * const p_telemetry)
 {
@@ -68,29 +34,24 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
 
     const bms_pack_metrics_t * const p_met = &p_inst->metrics;
 
-    /* Format pack voltage into V and mV remainder */
     const uint32_t pack_v_int = p_met->pack_voltage_mv / 1000U;
     const uint32_t pack_v_rem = (p_met->pack_voltage_mv % 1000U) / 10U;
 
-    /* Format pack current into A and mA remainder */
     const int32_t curr_int = p_telemetry->pack_current_ma / 1000;
     int32_t curr_rem = (p_telemetry->pack_current_ma % 1000) / 100;
     if (curr_rem < 0) {
         curr_rem = -curr_rem;
     }
 
-    /* Format road gradient */
     const int16_t grad_int = p_telemetry->road_gradient_tenth_pct / 10;
     int16_t grad_rem = p_telemetry->road_gradient_tenth_pct % 10;
     if (grad_rem < 0) {
         grad_rem = -grad_rem;
     }
 
-    /* Format vehicle speed */
     const uint16_t speed_int = p_telemetry->vehicle_speed_tenth_kph / 10U;
     const uint16_t speed_rem = p_telemetry->vehicle_speed_tenth_kph % 10U;
 
-    /* Print Single Line Telemetry Row */
     printf("[%sTICK %03u%s] State: %s%-19s%s | HV: %s | Vpack: %2u.%02uV | I: %+3d.%01dA | MaxT: %+2d.%01dC | MinCell: %umV | ",
            ANSI_BOLD,
            (unsigned int)p_inst->system_tick,
@@ -107,9 +68,6 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
     print_soc_bar(p_met->soc_deci_pct);
     printf("\n");
 
-    /* ---------------------------------------------------------------------- */
-    /* State Transition / Special Event Callouts                              */
-    /* ---------------------------------------------------------------------- */
     if (p_inst->current_state != p_inst->previous_state) {
         printf("       %s>>> FSM STATE TRANSITION: [%s] -> [%s] <<<%s\n",
                ANSI_BOLD,
@@ -118,9 +76,6 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
                ANSI_RESET);
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* Debouncing Filter Diagnostic Messages                                 */
-    /* ---------------------------------------------------------------------- */
     if (p_inst->debounce.overtemp_fault_ticks > 0U) {
         if (p_inst->debounce.overtemp_fault_ticks < BMS_DEBOUNCE_FAULT_LIMIT) {
             printf("       %s[DEBOUNCE FILTER] High Temp Anomaly (%d.%dC) Detected: %u/%u ticks - Transient Noise Suppressed (NO FALSE TRIP)%s\n",
@@ -147,9 +102,6 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
                ANSI_RESET);
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* Active Eco-Assist Cockpit Advisories                                   */
-    /* ---------------------------------------------------------------------- */
     if (p_inst->current_state == SYS_REGEN_ADVISORY) {
         printf("       %s[ECO-ASSIST ADVISORY] Road Grade: %+d.%d%% | Speed: %u.%u km/h | Kinetic Harvest Active -> Regen Torque Bias: %u%% | Power: REGEN%s\n",
                ANSI_BG_CYAN,
@@ -173,9 +125,6 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
     return BMS_STATUS_OK;
 }
 
-/**
- * @brief Outputs the final drive-cycle validation report and debouncing telemetry.
- */
 void hal_display_render_summary(const bms_core_instance_t * const p_inst,
                                 const uint32_t total_ticks)
 {
@@ -221,10 +170,6 @@ void hal_display_render_summary(const bms_core_instance_t * const p_inst,
     printf("%s================================================================================%s\n\n", ANSI_CYAN, ANSI_RESET);
 }
 
-/* ========================================================================== */
-/* Private Helper Functions                                                   */
-/* ========================================================================== */
-
 static const char * bms_state_to_string(const bms_state_t state)
 {
     switch (state) {
@@ -251,7 +196,6 @@ static const char * bms_state_to_color(const bms_state_t state)
 
 static void print_soc_bar(const uint16_t soc_deci_pct)
 {
-    /* 10-block progress bar */
     const uint16_t blocks = (uint16_t)((soc_deci_pct + 50U) / 100U);
     printf("SOC: %2u.%u%% [",
            (unsigned int)(soc_deci_pct / 10U),
