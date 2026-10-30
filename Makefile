@@ -24,7 +24,7 @@ SIM_SRCS    := bms_core.c hal_sensors.c hal_display.c main.c
 TEST_SRCS   := bms_core.c test_bms_core.c
 HEADERS     := bms_types.h bms_core.h hal_sensors.h hal_display.h
 
-.PHONY: all clean run test
+.PHONY: all clean run run-live test
 
 all: $(TARGET) $(TEST_TARGET)
 
@@ -39,6 +39,9 @@ test: $(TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
+
+run-live: $(TARGET)
+	./$(TARGET) --live
 
 clean:
 ifeq ($(OS),Windows_NT)

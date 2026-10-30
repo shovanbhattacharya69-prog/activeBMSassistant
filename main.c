@@ -12,6 +12,8 @@
  * @copyright Automotive Tier-1 Supplier Specification
  */
 
+#include <time.h>
+#include <string.h>
 #include "bms_types.h"
 #include "bms_core.h"
 #include "hal_sensors.h"
@@ -21,12 +23,39 @@
 #define BMS_SIMULATION_TOTAL_TICKS      (100U)
 
 /**
+ * @brief Portable C99 RTOS time-tick delay generator.
+ *
+ * @param[in] delay_ms Milliseconds to pause.
+ */
+static void rtos_delay_ms(const uint32_t delay_ms)
+{
+    if (delay_ms == 0U) {
+        return;
+    }
+    const clock_t start = clock();
+    const clock_t wait_ticks = (clock_t)((delay_ms * (uint32_t)CLOCKS_PER_SEC) / 1000U);
+    while ((clock() - start) < wait_ticks) {
+        /* Deterministic RTOS periodic task scheduler loop */
+    }
+}
+
+/**
  * @brief Main entry point executing the RTOS-style cyclic executive.
  *
+ * @param[in] argc Argument count.
+ * @param[in] argv Argument values: pass "--live" or "-l" for animated RTOS pacing.
  * @return 0 on nominal completion.
  */
-int main(void)
+int main(int argc, char *argv[])
 {
+    /* Determine pacing: live animated cockpit mode or instant batch mode */
+    uint32_t tick_delay_ms = 0U;
+    if (argc > 1) {
+        if ((strcmp(argv[1], "--live") == 0) || (strcmp(argv[1], "-l") == 0)) {
+            tick_delay_ms = 70U; /* 70 ms pacing per tick for animated live cockpit */
+        }
+    }
+
     /* ====================================================================== */
     /* 1. Stack Allocation (Zero Dynamic Memory Allocation)                   */
     /* ====================================================================== */
@@ -62,6 +91,11 @@ int main(void)
 
         /* Step C: Hardware Abstraction Layer - Telemetry & Display Output */
         (void)hal_display_render_tick(&bms_inst, &telemetry_buffer);
+
+        /* Step D: RTOS periodic task period sleep */
+        if (tick_delay_ms > 0U) {
+            rtos_delay_ms(tick_delay_ms);
+        }
     }
 
     /* ====================================================================== */
