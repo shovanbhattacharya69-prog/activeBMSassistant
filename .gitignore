@@ -1,0 +1,44 @@
+# ==============================================================================
+# Git Ignore: Automotive Embedded C Project
+# ==============================================================================
+
+# Compiled Object files
+*.o
+*.obj
+
+# Executables & Binaries
+*.exe
+*.out
+*.app
+bms_simulator
+bms_simulator.exe
+test_runner
+test_runner.exe
+
+# Static & Dynamic Libraries
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Debug & Symbol Dumps
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Editor / IDE Artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test / Coverage Artifacts
+*.gcno
+*.gcda
+*.gcov
+coverage/
+build/

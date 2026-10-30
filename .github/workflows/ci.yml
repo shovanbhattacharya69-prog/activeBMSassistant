@@ -1,0 +1,45 @@
+name: Embedded Automotive C99 CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build & Verify (MISRA C Flags & ISO 26262 Tests)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        cc: [gcc, clang]
+        exclude:
+          - os: windows-latest
+            cc: clang
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Compiler Environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc clang make
+
+      - name: Compile Unit Test Suite (-Wall -Wextra -Werror -pedantic -std=c99)
+        run: |
+          ${{ matrix.cc }} -Wall -Wextra -Werror -pedantic -std=c99 -O2 -o test_runner bms_core.c test_bms_core.c
+
+      - name: Execute ISO 26262 Part 6 Unit Tests
+        run: |
+          ./test_runner
+
+      - name: Compile Drive Cycle Simulator
+        run: |
+          ${{ matrix.cc }} -Wall -Wextra -Werror -pedantic -std=c99 -O2 -o bms_simulator bms_core.c hal_sensors.c hal_display.c main.c
+
+      - name: Execute 100-Tick Drive Cycle Simulator
+        run: |
+          ./bms_simulator
