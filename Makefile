@@ -16,7 +16,7 @@ SIM_SRCS    := bms_core.c hal_sensors.c hal_display.c main.c
 TEST_SRCS   := bms_core.c test_bms_core.c
 HEADERS     := bms_types.h bms_core.h hal_sensors.h hal_display.h
 
-.PHONY: all clean run run-live test
+.PHONY: all clean run run-live test telemetry dashboard
 
 all: $(TARGET) $(TEST_TARGET)
 
@@ -34,6 +34,16 @@ run: $(TARGET)
 
 run-live: $(TARGET)
 	./$(TARGET) --live
+
+telemetry: $(TARGET)
+	./$(TARGET) --json > telemetry.json
+
+dashboard:
+ifeq ($(OS),Windows_NT)
+	start index.html
+else
+	xdg-open index.html || open index.html
+endif
 
 clean:
 ifeq ($(OS),Windows_NT)

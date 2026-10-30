@@ -9,6 +9,8 @@ extern "C" {
 
 bms_status_t hal_display_init(void);
 
+void hal_display_set_json_mode(bool json_mode);
+
 bms_status_t hal_display_render_tick(const bms_core_instance_t *p_inst,
                                      const bms_sensor_telemetry_t *p_telemetry);
 

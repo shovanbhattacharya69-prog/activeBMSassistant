@@ -21,10 +21,17 @@ static void rtos_delay_ms(const uint32_t delay_ms)
 int main(int argc, char *argv[])
 {
     uint32_t tick_delay_ms = 0U;
-    if (argc > 1) {
-        if ((strcmp(argv[1], "--live") == 0) || (strcmp(argv[1], "-l") == 0)) {
+    bool json_mode = false;
+    for (int i = 1; i < argc; ++i) {
+        if ((strcmp(argv[i], "--live") == 0) || (strcmp(argv[i], "-l") == 0)) {
             tick_delay_ms = 70U;
+        } else if (strcmp(argv[i], "--json") == 0) {
+            json_mode = true;
         }
+    }
+
+    if (json_mode) {
+        hal_display_set_json_mode(true);
     }
 
     bms_core_instance_t     bms_inst;

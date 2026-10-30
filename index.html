@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Active Eco-Assist BMS | Automotive Digital Cockpit & Telemetry</title>
+  <style>
+    :root {
+      --bg-space: #070a13;
+      --bg-card: rgba(14, 20, 36, 0.85);
+      --bg-card-hover: rgba(20, 30, 54, 0.95);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(0, 229, 255, 0.35);
+      
+      --accent-cyan: #00e5ff;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-crimson: #ff3366;
+      --accent-purple: #a855f7;
+      --accent-blue: #3b82f6;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --glow-cyan: 0 0 20px rgba(0, 229, 255, 0.25);
+      --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.25);
+      --glow-crimson: 0 0 25px rgba(255, 51, 102, 0.4);
+      --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-space);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
+        radial-gradient(circle at 80% 100%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
+        linear-gradient(to bottom, #070a13 0%, #05080e 100%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* Container */
+    .dashboard-container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* Top Bar Header */
+    header.cockpit-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(16, 185, 129, 0.2));
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--glow-cyan);
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--accent-cyan);
+    }
+
+    .brand-titles h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #ffffff 0%, #e0f2fe 50%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-titles p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.03em;
+    }
+
+    .tech-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .badge.cyan { border-color: rgba(0, 229, 255, 0.3); color: var(--accent-cyan); background: rgba(0, 229, 255, 0.06); }
+    .badge.emerald { border-color: rgba(16, 185, 129, 0.3); color: var(--accent-emerald); background: rgba(16, 185, 129, 0.06); }
+    .badge.purple { border-color: rgba(168, 85, 247, 0.3); color: var(--accent-purple); background: rgba(168, 85, 247, 0.06); }
+
+    /* Master Status Banner */
+    .status-ribbon {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .ribbon-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .ribbon-card:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .ribbon-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+      opacity: 0.4;
+    }
+
+    .ribbon-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .ribbon-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+    }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .state-pill.normal { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: var(--glow-emerald); }
+    .state-pill.regen { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 229, 255, 0.4); box-shadow: var(--glow-cyan); }
+    .state-pill.limp { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .state-pill.fault { background: rgba(255, 51, 102, 0.2); color: var(--accent-crimson); border: 1px solid rgba(255, 51, 102, 0.5); box-shadow: var(--glow-crimson); animation: pulse-fault 1.2s infinite; }
+    .state-pill.init { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+    @keyframes pulse-fault {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+
+    /* Grid Layouts */
+    .cockpit-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr 340px;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1280px) {
+      .cockpit-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .cockpit-grid > .cell-matrix-panel {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .cockpit-grid {
+        grid-template-columns: 1fr;
+      }
+      .cockpit-grid > .cell-matrix-panel {
+        grid-column: span 1;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--accent-cyan);
+    }
+
+    /* SOC Gauge Section */
+    .soc-dial-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0;
+      position: relative;
+    }
+
+    .soc-svg-box {
+      width: 220px;
+      height: 220px;
+      position: relative;
+    }
+
+    .soc-svg-box svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .soc-circle-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.05);
+      stroke-width: 14;
+    }
+
+    .soc-circle-bar {
+      fill: none;
+      stroke: url(#socGrad);
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-dasharray: 565.48;
+      stroke-dashoffset: 84.8; /* 85% */
+      transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
+      filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
+    }
+
+    .soc-center-data {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .soc-main-val {
+      font-size: 2.5rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      line-height: 1;
+      color: #ffffff;
+    }
+
+    .soc-main-unit {
+      font-size: 1.1rem;
+      color: var(--accent-cyan);
+      margin-left: 2px;
+    }
+
+    .soc-sub-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    .soc-meta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .soc-meta-item {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .soc-meta-label {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+
+    .soc-meta-val {
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+    }
+
+    /* Cell Matrix Panel */
+    .cell-matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .cell-matrix-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .cell-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .cell-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .cell-card.min-cell {
+      border-color: rgba(0, 229, 255, 0.7);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+      background: rgba(0, 229, 255, 0.04);
+    }
+
+    .cell-card.max-cell {
+      border-color: rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.04);
+    }
+
+    .cell-card.hot-cell {
+      border-color: rgba(255, 51, 102, 0.8);
+      background: rgba(255, 51, 102, 0.08);
+      animation: pulse-hot 1s infinite alternate;
+    }
+
+    @keyframes pulse-hot {
+      0% { border-color: rgba(255, 51, 102, 0.4); }
+      100% { border-color: rgba(255, 51, 102, 1); box-shadow: var(--glow-crimson); }
+    }
+
+    .cell-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .cell-tag {
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .cell-tag.min { background: rgba(0, 229, 255, 0.2); color: var(--accent-cyan); }
+    .cell-tag.max { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+    .cell-tag.hot { background: rgba(255, 51, 102, 0.3); color: var(--accent-crimson); }
+
+    .cell-voltage {
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #ffffff;
+    }
+
+    .cell-bar-track {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 2px 0;
+    }
+
+    .cell-bar-fill {
+      height: 100%;
+      background: var(--accent-emerald);
+      width: 75%;
+      border-radius: 2px;
+      transition: width 0.25s ease, background-color 0.25s ease;
+    }
+
+    .cell-temp {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cell-delta-banner {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    /* Diagnostics & Dynamics Panel */
+    .dyn-meter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .dyn-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .dyn-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .dyn-val {
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .dyn-bar-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dyn-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.2s ease, background-color 0.2s ease;
+    }
+
+    /* Debounce Filter Indicator */
+    .debounce-box {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .debounce-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .debounce-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .debounce-step {
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-dim);
+      transition: all 0.2s ease;
+    }
+
+    .debounce-step.active-1 {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    .debounce-step.active-2 {
+      background: rgba(245, 158, 11, 0.35);
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    .debounce-step.active-3 {
+      background: rgba(255, 51, 102, 0.4);
+      border-color: var(--accent-crimson);
+      color: #ffffff;
+      box-shadow: var(--glow-crimson);
+    }
+
+    .debounce-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Live Oscilloscope Charts */
+    .charts-panel {
+      margin-bottom: 24px;
+    }
+
+    .canvas-container {
+      width: 100%;
+      height: 260px;
+      position: relative;
+    }
+
+    canvas#telemetryCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Mission Controls Panel */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .playback-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(16, 185, 129, 0.2));
+      border-color: var(--border-highlight);
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(16, 185, 129, 0.35));
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+    }
+
+    .btn.danger {
+      background: rgba(255, 51, 102, 0.15);
+      border-color: rgba(255, 51, 102, 0.4);
+      color: var(--accent-crimson);
+    }
+
+    .btn.danger:hover {
+      background: rgba(255, 51, 102, 0.25);
+    }
+
+    .btn.active {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .scrubber-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 260px;
+    }
+
+    .scrubber-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .scrubber-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: var(--glow-cyan);
+    }
+
+    .tick-display {
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent-cyan);
+      min-width: 80px;
+    }
+
+    /* Preset Scenarios */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .scenario-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .scenario-card:hover {
+      border-color: var(--border-highlight);
+      background: rgba(0, 229, 255, 0.03);
+      transform: translateY(-1px);
+    }
+
+    .scenario-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scenario-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    /* Footer */
+    footer.cockpit-footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+
+  <!-- TOP HEADER -->
+  <header class="cockpit-header">
+    <div class="brand-group">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1>Active Eco-Assist BMS</h1>
+        <p>Tier-1 Automotive Embedded C99 Core & Digital Cockpit Telemetry</p>
+      </div>
+    </div>
+
+    <div class="tech-badges">
+      <span class="badge cyan">MISRA C:2012</span>
+      <span class="badge emerald">ISO 26262 ASIL-D</span>
+      <span class="badge purple">0B Dynamic Heap</span>
+      <span class="badge">3-Tick EMI Debounce</span>
+      <span class="badge" id="sourceBadge">Engine: Live Digital Twin</span>
+    </div>
+  </header>
+
+  <!-- MASTER STATUS RIBBON -->
+  <section class="status-ribbon">
+    <div class="ribbon-card">
+      <span class="ribbon-title">Deterministic FSM State</span>
+      <div class="ribbon-value">
+        <span class="state-pill normal" id="fsmPill">
+          <span style="font-size: 1.1em;">●</span>
+          <span id="fsmStateText">SYS_NORMAL</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="ribbon-card">
+      <span class="ribbon-title">HV Safety Contactor / Pyrofuse</span>
+      <div class="ribbon-value" id="contactorValue" style="color: var(--accent-emerald);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>CLOSED (Energized)</span>
+      </div>
+    </div>
+
+    <div class="ribbon-card">
+      <span class="ribbon-title">Eco-Assist Dynamic Regen</span>
+      <div class="ribbon-value" id="regenTorqueValue" style="color: var(--accent-cyan);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>15% (Nominal)</span>
+      </div>
+    </div>
+
+    <div class="ribbon-card">
+      <span class="ribbon-title">Traction Power Throttle</span>
+      <div class="ribbon-value" id="throttleValue" style="color: #ffffff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>100% (Nominal)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN COCKPIT GRID -->
+  <div class="cockpit-grid">
+
+    <!-- LEFT PANEL: SOC & PACK GAUGES -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+          Energy & Pack Metrics
+        </span>
+        <span class="badge cyan" id="packVoltageBadge">61.4V</span>
+      </div>
+
+      <div class="soc-dial-container">
+        <div class="soc-svg-box">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="socGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00e5ff"/>
+                <stop offset="100%" stop-color="#10b981"/>
+              </linearGradient>
+            </defs>
+            <circle class="soc-circle-bg" cx="100" cy="100" r="90"></circle>
+            <circle class="soc-circle-bar" id="socProgressCircle" cx="100" cy="100" r="90"></circle>
+          </svg>
+          <div class="soc-center-data">
+            <div>
+              <span class="soc-main-val" id="socValueText">85.0</span><span class="soc-main-unit">%</span>
+            </div>
+            <span class="soc-sub-label">State of Charge</span>
+          </div>
+        </div>
+
+        <div class="soc-meta-row">
+          <div class="soc-meta-item">
+            <div class="soc-meta-label">Remaining Energy</div>
+            <div class="soc-meta-val" id="capacityVal">42.5 Ah</div>
+          </div>
+          <div class="soc-meta-item">
+            <div class="soc-meta-label">Estimated Range</div>
+            <div class="soc-meta-val" id="rangeVal">340 km</div>
+          </div>
+        </div>
+
+        <div class="soc-meta-row" style="margin-top: 8px;">
+          <div class="soc-meta-item">
+            <div class="soc-meta-label">Pack Current</div>
+            <div class="soc-meta-val" id="currentVal">+25.0 A</div>
+          </div>
+          <div class="soc-meta-item">
+            <div class="soc-meta-label">Pack Power</div>
+            <div class="soc-meta-val" id="powerVal">+1.5 kW</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL: 16-CELL BATTERY MATRIX -->
+    <div class="panel cell-matrix-panel">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          16-Cell Prismatic Module Balancer
+        </span>
+        <span class="badge" id="cellDeltaBadge">Delta: 12 mV</span>
+      </div>
+
+      <div class="cell-matrix-grid" id="cellMatrixGrid">
+        <!-- Generated by JS for Cells 1-16 -->
+      </div>
+
+      <div class="cell-delta-banner">
+        <div>
+          <span style="color: var(--text-dim); text-transform: uppercase; font-size: 0.72rem;">Min Cell: </span>
+          <strong id="minCellDisplay" style="color: var(--accent-cyan);">Cell #01 (3850 mV)</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-dim); text-transform: uppercase; font-size: 0.72rem;">Max Cell: </span>
+          <strong id="maxCellDisplay" style="color: var(--accent-amber);">Cell #04 (3862 mV)</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-dim); text-transform: uppercase; font-size: 0.72rem;">Cell Balance Status: </span>
+          <strong id="deltaStatus" style="color: var(--accent-emerald);">Optimal (&lt;30 mV)</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: DYNAMICS & DEBOUNCE DIAGNOSTICS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+          Dynamics & Noise Filter
+        </span>
+        <span class="badge" id="speedBadge">50.0 km/h</span>
+      </div>
+
+      <div class="dyn-meter-group">
+        <div class="dyn-item">
+          <div class="dyn-label-row">
+            <span>Road Gradient</span>
+            <span class="dyn-val" id="gradVal">+1.0% (Incline)</span>
+          </div>
+          <div class="dyn-bar-track">
+            <div class="dyn-bar-fill" id="gradBar" style="width: 50%; background: var(--accent-blue);"></div>
+          </div>
+        </div>
+
+        <div class="dyn-item">
+          <div class="dyn-label-row">
+            <span>Accelerator Pedal</span>
+            <span class="dyn-val" id="accelVal">30%</span>
+          </div>
+          <div class="dyn-bar-track">
+            <div class="dyn-bar-fill" id="accelBar" style="width: 30%; background: var(--accent-emerald);"></div>
+          </div>
+        </div>
+
+        <div class="dyn-item">
+          <div class="dyn-label-row">
+            <span>Brake Pedal</span>
+            <span class="dyn-val" id="brakeVal">0%</span>
+          </div>
+          <div class="dyn-bar-track">
+            <div class="dyn-bar-fill" id="brakeBar" style="width: 0%; background: var(--accent-crimson);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Tick Debounce Visualizer -->
+      <div class="debounce-box">
+        <div class="debounce-title">
+          <span>Transient Noise Filter (MISRA)</span>
+          <span id="debounceCounterLabel">0 / 3 Ticks</span>
+        </div>
+        <div class="debounce-steps">
+          <div class="debounce-step" id="dbStep1">Tick 1</div>
+          <div class="debounce-step" id="dbStep2">Tick 2</div>
+          <div class="debounce-step" id="dbStep3">Tick 3 (Trip)</div>
+        </div>
+        <p class="debounce-desc" id="debounceDesc">
+          Continuous analog sampling filter active. Single or dual-tick EMI noise transients are suppressed without false emergency trips.
+        </p>
+      </div>
+
+      <div style="margin-top: 14px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); display: flex; justify-content: space-between;">
+        <span>Fault Register: <strong id="faultReg" style="color: var(--text-main);">0x00000000</strong></span>
+        <span>Warning Register: <strong id="warnReg" style="color: var(--text-main);">0x00000000</strong></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LIVE OSCILLOSCOPE CHARTS -->
+  <div class="panel charts-panel">
+    <div class="panel-header">
+      <span class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Multi-Channel Telemetry Oscilloscope (100 ms / Tick)
+      </span>
+      <div style="display: flex; gap: 8px;">
+        <span class="badge" id="chartTickInfo">Tick: 0 / 100</span>
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="telemetryCanvas"></canvas>
+    </div>
+
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-color" style="background: #00e5ff;"></span> Pack Voltage (V)</div>
+      <div class="legend-item"><span class="legend-color" style="background: #10b981;"></span> Pack Current (+/- A)</div>
+      <div class="legend-item"><span class="legend-color" style="background: #ff3366;"></span> Max Cell Temp (°C)</div>
+      <div class="legend-item"><span class="legend-color" style="background: #a855f7;"></span> Road Pitch Grade (%)</div>
+      <div class="legend-item"><span class="legend-color" style="background: rgba(255, 51, 102, 0.5); border: 1px dashed #ff3366;"></span> Critical Fault Threshold (65°C)</div>
+    </div>
+  </div>
+
+  <!-- MISSION CONTROLS & RECRUITER DEMO DECK -->
+  <div class="panel controls-panel">
+    <div class="panel-header">
+      <span class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Simulation Mission Control & Recruiter Scenarios
+      </span>
+      <div style="display: flex; gap: 8px;">
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+        <button class="btn" onclick="document.getElementById('jsonFileInput').click();">
+          📁 Load Native C telemetry.json
+        </button>
+        <button class="btn" id="exportBtn" onclick="exportCurrentTelemetry();">
+          💾 Save Telemetry Log
+        </button>
+      </div>
+    </div>
+
+    <!-- Playback Toolbar -->
+    <div class="playback-toolbar">
+      <button class="btn primary" id="playBtn" onclick="togglePlay();">
+        <span id="playIcon">▶</span> <span id="playText">Play Mission</span>
+      </button>
+      <button class="btn" onclick="stepTick(-1);">⏮ Prev</button>
+      <button class="btn" onclick="stepTick(1);">⏭ Next</button>
+      <button class="btn" onclick="resetSim();">🔄 Reset</button>
+
+      <div class="scrubber-container">
+        <span class="tick-display" id="scrubberLabel">Tick 0 / 100</span>
+        <input type="range" class="scrubber-slider" id="scrubberSlider" min="0" max="99" value="0" oninput="onScrub(this.value)">
+      </div>
+
+      <div style="display: flex; gap: 4px;">
+        <button class="btn speed-btn" onclick="setSpeed(0.5, this)">0.5x</button>
+        <button class="btn speed-btn active" onclick="setSpeed(1, this)">1x</button>
+        <button class="btn speed-btn" onclick="setSpeed(2, this)">2x</button>
+        <button class="btn speed-btn" onclick="setSpeed(5, this)">5x</button>
+      </div>
+    </div>
+
+    <!-- One-Click Recruiter Scenario Buttons -->
+    <div class="scenario-grid">
+      <div class="scenario-card" onclick="jumpToScenario('full');">
+        <div class="scenario-title">
+          <span>🏁 Full 100-Tick Automotive Mission</span>
+        </div>
+        <p class="scenario-desc">
+          Official drive cycle: Standby, Mountain Climb, EMI Noise Glitch, Steep Descent Eco-Regen, High-Speed Sprint, Limp Mode, & Thermal Runaway Emergency Cut.
+        </p>
+      </div>
+
+      <div class="scenario-card" onclick="jumpToScenario('regen');">
+        <div class="scenario-title">
+          <span>⛰️ Downhill Eco-Assist Regen (Tick 43-62)</span>
+        </div>
+        <p class="scenario-desc">
+          Steep -8.5% mountain descent. Watch Active Eco-Assist dynamically elevate regen torque to harvest kinetic energy and recharge battery at -65A.
+        </p>
+      </div>
+
+      <div class="scenario-card" onclick="jumpToScenario('glitch');">
+        <div class="scenario-title">
+          <span>⚡ 2-Tick EMI Transient Glitch (Tick 34-40)</span>
+        </div>
+        <p class="scenario-desc">
+          Cell 3 spikes to 72.0°C for 2 ticks. Demonstrates the 3-tick MISRA debouncer suppressing transient EMI inverter noise without false emergency trip.
+        </p>
+      </div>
+
+      <div class="scenario-card" onclick="jumpToScenario('emergency');">
+        <div class="scenario-title">
+          <span>🔥 Sustained Thermal Runaway (Tick 88-95)</span>
+        </div>
+        <p class="scenario-desc">
+          Sustained temperature >65°C for 3 consecutive ticks. The FSM latches SYS_CRITICAL_FAULT and instantly blows the HV contactors open.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="cockpit-footer">
+    <div>
+      <span>Designed for Staff Automotive Embedded Engineering Demonstration</span> |
+      <span>Target Architecture: Infineon AURIX TC3xx / NXP S32K / AUTOSAR Classic SWC</span>
+    </div>
+    <div>
+      <a href="https://github.com" target="_blank">View C99 Source Code on GitHub</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/**
+ * PURE CLIENT-SIDE C99 DIGITAL TWIN & TELEMETRY STREAM VISUALIZER
+ * Accurately replicates the mathematical state machine and physics model of bms_core.c & hal_sensors.c
+ */
+
+const BMS_CELL_COUNT = 16;
+const BMS_TOTAL_TICKS = 100;
+
+// State names matching bms_types.h
+const STATE_NAMES = [
+  "SYS_INIT",
+  "SYS_NORMAL",
+  "SYS_REGEN_ADVISORY",
+  "SYS_LIMP_MODE",
+  "SYS_CRITICAL_FAULT"
+];
+
+// Telemetry buffer: 100 ticks
+let telemetryData = [];
+let currentTickIndex = 0;
+let isPlaying = false;
+let playInterval = null;
+let playSpeedMultiplier = 1.0;
+const BASE_TICK_MS = 100;
+
+// Initialize cell matrix DOM
+function initCellMatrixDOM() {
+  const container = document.getElementById("cellMatrixGrid");
+  container.innerHTML = "";
+  for (let i = 0; i < BMS_CELL_COUNT; i++) {
+    const card = document.createElement("div");
+    card.className = "cell-card";
+    card.id = `cellCard_${i}`;
+    card.innerHTML = `
+      <div class="cell-top-row">
+        <span>#${String(i + 1).padStart(2, '0')}</span>
+        <span class="cell-tag" id="cellTag_${i}">NOM</span>
+      </div>
+      <div class="cell-voltage" id="cellVolt_${i}">3850 mV</div>
+      <div class="cell-bar-track">
+        <div class="cell-bar-fill" id="cellBar_${i}" style="width: 70%;"></div>
+      </div>
+      <div class="cell-temp">
+        <span>Temp</span>
+        <span id="cellTemp_${i}">26.0°C</span>
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// Generate the exact deterministic 100-tick automotive drive cycle
+function generateDeterministicDriveCycle() {
+  const ticks = [];
+  let soc_deci_pct = 850; // 85.0%
+  let prev_state = 0; // SYS_INIT
+  let current_state = 1; // SYS_NORMAL
+  let contactor_closed = true;
+  let overtemp_ticks = 0;
+
+  for (let tick = 0; tick < BMS_TOTAL_TICKS; tick++) {
+    let base_cell_mv = 3820;
+    let base_temp_ddegc = 280;
+    let current_ma = 25000;
+    let road_grade = 0;
+    let speed_dkph = 500;
+    let accel_pct = 25;
+    let brake_pct = 0;
+
+    if (tick < 5) {
+      base_cell_mv = 3850;
+      base_temp_ddegc = 260;
+      current_ma = 0;
+      road_grade = 0;
+      speed_dkph = 0;
+      accel_pct = 0;
+      brake_pct = 0;
+    } else if (tick < 21) {
+      base_cell_mv = 3840 - (tick * 2);
+      base_temp_ddegc = 260 + (tick * 2);
+      current_ma = 32000;
+      road_grade = 10;
+      speed_dkph = 520;
+      accel_pct = 30;
+      brake_pct = 0;
+    } else if (tick < 36) {
+      base_cell_mv = 3800 - ((tick - 20) * 8);
+      base_temp_ddegc = 300 + ((tick - 20) * 11);
+      current_ma = 95000;
+      road_grade = 85;
+      speed_dkph = 580;
+      accel_pct = 75;
+      brake_pct = 0;
+    } else if (tick < 38) {
+      base_cell_mv = 3680;
+      base_temp_ddegc = 460;
+      current_ma = 85000;
+      road_grade = 40;
+      speed_dkph = 600;
+      accel_pct = 60;
+      brake_pct = 0;
+    } else if (tick < 43) {
+      base_cell_mv = 3670;
+      base_temp_ddegc = 465;
+      current_ma = 40000;
+      road_grade = 0;
+      speed_dkph = 620;
+      accel_pct = 35;
+      brake_pct = 0;
+    } else if (tick < 63) {
+      base_cell_mv = 3670 + ((tick - 43) * 5);
+      base_temp_ddegc = 465 - ((tick - 43) * 2);
+      current_ma = -65000;
+      road_grade = -85;
+      speed_dkph = 680;
+      accel_pct = 0;
+      brake_pct = 20;
+    } else if (tick < 76) {
+      base_cell_mv = 3760 - ((tick - 63) * 7);
+      base_temp_ddegc = 460 + ((tick - 63) * 9);
+      current_ma = 110000;
+      road_grade = 0;
+      speed_dkph = 1100;
+      accel_pct = 90;
+      brake_pct = 0;
+    } else if (tick < 88) {
+      base_cell_mv = 3650;
+      base_temp_ddegc = 550 - ((tick - 76) * 11);
+      current_ma = 22000;
+      road_grade = 0;
+      speed_dkph = 450;
+      accel_pct = 25;
+      brake_pct = 0;
+    } else if (tick < 93) {
+      base_cell_mv = 3620;
+      base_temp_ddegc = 655 + ((tick - 88) * 12);
+      current_ma = 75000;
+      road_grade = 0;
+      speed_dkph = 700;
+      accel_pct = 50;
+      brake_pct = 0;
+    } else {
+      base_cell_mv = 3600;
+      base_temp_ddegc = 620;
+      current_ma = 0;
+      road_grade = 0;
+      speed_dkph = 0;
+      accel_pct = 0;
+      brake_pct = 100;
+    }
+
+    const cell_voltages_mv = [];
+    const cell_temperatures_ddegc = [];
+    let pack_voltage_mv = 0;
+    let min_cell_mv = 99999;
+    let max_cell_mv = 0;
+    let min_cell_index = 0;
+    let max_cell_index = 0;
+    let min_temp_ddegc = 9999;
+    let max_temp_ddegc = -9999;
+    let sum_temp = 0;
+
+    for (let i = 0; i < BMS_CELL_COUNT; i++) {
+      const offset_v = (i % 4) * 4;
+      const v = base_cell_mv + offset_v;
+      cell_voltages_mv.push(v);
+      pack_voltage_mv += v;
+
+      if (v < min_cell_mv) { min_cell_mv = v; min_cell_index = i; }
+      if (v > max_cell_mv) { max_cell_mv = v; max_cell_index = i; }
+
+      let t_offset = (i === 7 || i === 8) ? 15 : 0;
+      let t = base_temp_ddegc + t_offset;
+      if (tick === 36 || tick === 37) {
+        if (i === 3) t = 720; // 72.0C EMI Glitch
+      }
+      cell_temperatures_ddegc.push(t);
+      if (t < min_temp_ddegc) min_temp_ddegc = t;
+      if (t > max_temp_ddegc) max_temp_ddegc = t;
+      sum_temp += t;
+    }
+
+    const avg_temp_ddegc = Math.round(sum_temp / BMS_CELL_COUNT);
+    const cell_delta_mv = max_cell_mv - min_cell_mv;
+
+    // Coulomb counting update
+    const delta_soc = Math.round((current_ma * 100) / (50000 * 36));
+    soc_deci_pct = Math.max(0, Math.min(1000, soc_deci_pct - delta_soc));
+
+    // Debounce & State Machine
+    let fault_flags = 0;
+    let warning_flags = 0;
+
+    if (max_temp_ddegc >= 650) {
+      overtemp_ticks++;
+      if (overtemp_ticks >= 3) {
+        fault_flags |= 0x00000001;
+        current_state = 4; // SYS_CRITICAL_FAULT
+        contactor_closed = false;
+        current_ma = 0;
+      }
+    } else {
+      overtemp_ticks = 0;
+    }
+
+    if (current_state !== 4) {
+      if (max_temp_ddegc >= 550) {
+        warning_flags |= 0x00000001;
+        current_state = 3; // SYS_LIMP_MODE
+      } else if (road_grade <= -40 && speed_dkph >= 200) {
+        current_state = 2; // SYS_REGEN_ADVISORY
+      } else {
+        current_state = 1; // SYS_NORMAL
+      }
+    }
+
+    let throttle_limit = 100;
+    let regen_bias = 15;
+    if (current_state === 4) {
+      throttle_limit = 0;
+      regen_bias = 0;
+    } else if (current_state === 3) {
+      throttle_limit = 40;
+    } else if (current_state === 2) {
+      regen_bias = Math.min(95, 15 + Math.round((Math.abs(road_grade) / 10) * 8));
+    }
+
+    ticks.push({
+      tick: tick + 1,
+      state: STATE_NAMES[current_state],
+      previous_state: STATE_NAMES[prev_state],
+      contactor_closed: contactor_closed,
+      pack_voltage_mv: pack_voltage_mv,
+      pack_current_ma: current_ma,
+      soc_deci_pct: soc_deci_pct,
+      min_cell_mv: min_cell_mv,
+      max_cell_mv: max_cell_mv,
+      cell_delta_mv: cell_delta_mv,
+      min_cell_index: min_cell_index,
+      max_cell_index: max_cell_index,
+      min_temp_ddegc: min_temp_ddegc,
+      max_temp_ddegc: max_temp_ddegc,
+      avg_temp_ddegc: avg_temp_ddegc,
+      throttle_limit_pct: throttle_limit,
+      regen_torque_bias_pct: regen_bias,
+      road_gradient_tenth_pct: road_grade,
+      vehicle_speed_tenth_kph: speed_dkph,
+      accelerator_pedal_pct: accel_pct,
+      brake_pedal_pct: brake_pct,
+      fault_flags: fault_flags,
+      warning_flags: warning_flags,
+      debounce_overtemp: Math.min(3, overtemp_ticks),
+      cell_voltages_mv: cell_voltages_mv,
+      cell_temperatures_ddegc: cell_temperatures_ddegc
+    });
+
+    prev_state = current_state;
+  }
+  return ticks;
+}
+
+// Render the active tick to UI
+function renderTick(index) {
+  if (!telemetryData || telemetryData.length === 0) return;
+  const d = telemetryData[index];
+  if (!d) return;
+
+  currentTickIndex = index;
+
+  // Master Ribbon & Badges
+  const fsmPill = document.getElementById("fsmPill");
+  const fsmStateText = document.getElementById("fsmStateText");
+  fsmStateText.textContent = d.state;
+  fsmPill.className = "state-pill " + getStateClass(d.state);
+
+  const contactorVal = document.getElementById("contactorValue");
+  if (d.contactor_closed) {
+    contactorVal.style.color = "var(--accent-emerald)";
+    contactorVal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>CLOSED (Energized)</span>`;
+  } else {
+    contactorVal.style.color = "var(--accent-crimson)";
+    contactorVal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>OPEN (Safe Galvanic Cut)</span>`;
+  }
+
+  const regenTorqueVal = document.getElementById("regenTorqueValue");
+  regenTorqueVal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>${d.regen_torque_bias_pct}% Dynamic</span>`;
+
+  const throttleVal = document.getElementById("throttleValue");
+  throttleVal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg><span>${d.throttle_limit_pct}% (${d.throttle_limit_pct === 100 ? 'Nominal' : d.throttle_limit_pct === 0 ? 'Emergency Cut' : 'Thermal Limp'})</span>`;
+
+  // Left Panel: SOC & Pack
+  const socPct = (d.soc_deci_pct / 10).toFixed(1);
+  document.getElementById("socValueText").textContent = socPct;
+  const packV = (d.pack_voltage_mv / 1000).toFixed(2);
+  document.getElementById("packVoltageBadge").textContent = packV + " V";
+  
+  // SVG Arc: radius 90 -> perimeter = 2 * PI * 90 = 565.48
+  const maxDash = 565.48;
+  const offset = maxDash - (maxDash * (d.soc_deci_pct / 1000));
+  document.getElementById("socProgressCircle").style.strokeDashoffset = offset;
+
+  const capRemaining = ((d.soc_deci_pct / 1000) * 50).toFixed(1);
+  document.getElementById("capacityVal").textContent = `${capRemaining} / 50 Ah`;
+  const estRange = Math.round((d.soc_deci_pct / 1000) * 400);
+  document.getElementById("rangeVal").textContent = `~${estRange} km`;
+
+  const currA = (d.pack_current_ma / 1000).toFixed(1);
+  const currentElem = document.getElementById("currentVal");
+  if (d.pack_current_ma < 0) {
+    currentElem.textContent = `${currA} A (Regen)`;
+    currentElem.style.color = "var(--accent-emerald)";
+  } else if (d.pack_current_ma > 0) {
+    currentElem.textContent = `+${currA} A (Discharge)`;
+    currentElem.style.color = (d.pack_current_ma > 80000) ? "var(--accent-amber)" : "var(--accent-cyan)";
+  } else {
+    currentElem.textContent = "0.0 A (Standby)";
+    currentElem.style.color = "var(--text-muted)";
+  }
+
+  const pkw = ((d.pack_voltage_mv * d.pack_current_ma) / 1000000000).toFixed(2);
+  const powerElem = document.getElementById("powerVal");
+  powerElem.textContent = (pkw >= 0 ? `+${pkw}` : `${pkw}`) + " kW";
+  powerElem.style.color = pkw < 0 ? "var(--accent-emerald)" : "#ffffff";
+
+  // Center Panel: Cell Matrix
+  for (let i = 0; i < BMS_CELL_COUNT; i++) {
+    const card = document.getElementById(`cellCard_${i}`);
+    const v = d.cell_voltages_mv[i];
+    const t = d.cell_temperatures_ddegc[i] / 10;
+    
+    document.getElementById(`cellVolt_${i}`).textContent = `${v} mV`;
+    document.getElementById(`cellTemp_${i}`).textContent = `${t.toFixed(1)}°C`;
+
+    // Bar fill: nominal between 2700mV and 4250mV
+    const pct = Math.max(0, Math.min(100, Math.round(((v - 2700) / (4250 - 2700)) * 100)));
+    const bar = document.getElementById(`cellBar_${i}`);
+    bar.style.width = pct + "%";
+
+    const tag = document.getElementById(`cellTag_${i}`);
+    card.className = "cell-card";
+    
+    if (t >= 65) {
+      card.classList.add("hot-cell");
+      tag.className = "cell-tag hot";
+      tag.textContent = "CRIT HOT";
+      bar.style.backgroundColor = "var(--accent-crimson)";
+    } else if (i === d.min_cell_index) {
+      card.classList.add("min-cell");
+      tag.className = "cell-tag min";
+      tag.textContent = "MIN CELL";
+      bar.style.backgroundColor = "var(--accent-cyan)";
+    } else if (i === d.max_cell_index) {
+      card.classList.add("max-cell");
+      tag.className = "cell-tag max";
+      tag.textContent = "MAX CELL";
+      bar.style.backgroundColor = "var(--accent-amber)";
+    } else {
+      tag.className = "cell-tag";
+      tag.textContent = "NOM";
+      bar.style.backgroundColor = "var(--accent-emerald)";
+    }
+  }
+
+  document.getElementById("cellDeltaBadge").textContent = `Delta: ${d.cell_delta_mv} mV`;
+  document.getElementById("minCellDisplay").textContent = `Cell #${String(d.min_cell_index + 1).padStart(2, '0')} (${d.min_cell_mv} mV)`;
+  document.getElementById("maxCellDisplay").textContent = `Cell #${String(d.max_cell_index + 1).padStart(2, '0')} (${d.max_cell_mv} mV)`;
+
+  const deltaStatus = document.getElementById("deltaStatus");
+  if (d.cell_delta_mv > 150) {
+    deltaStatus.textContent = "CRITICAL IMBALANCE (>150 mV)";
+    deltaStatus.style.color = "var(--accent-crimson)";
+  } else if (d.cell_delta_mv > 60) {
+    deltaStatus.textContent = "MODERATE SPREAD (>60 mV)";
+    deltaStatus.style.color = "var(--accent-amber)";
+  } else {
+    deltaStatus.textContent = "OPTIMAL (<30 mV)";
+    deltaStatus.style.color = "var(--accent-emerald)";
+  }
+
+  // Right Panel: Dynamics & Debounce
+  const speedKph = (d.vehicle_speed_tenth_kph / 10).toFixed(1);
+  document.getElementById("speedBadge").textContent = `${speedKph} km/h`;
+
+  const gradPct = (d.road_gradient_tenth_pct / 10).toFixed(1);
+  const gradValElem = document.getElementById("gradVal");
+  const gradBar = document.getElementById("gradBar");
+  if (d.road_gradient_tenth_pct < 0) {
+    gradValElem.textContent = `${gradPct}% (Downhill Descent)`;
+    gradValElem.style.color = "var(--accent-cyan)";
+    gradBar.style.backgroundColor = "var(--accent-cyan)";
+    gradBar.style.width = Math.min(100, Math.abs(d.road_gradient_tenth_pct)) + "%";
+  } else if (d.road_gradient_tenth_pct > 0) {
+    gradValElem.textContent = `+${gradPct}% (Incline Climb)`;
+    gradValElem.style.color = "var(--accent-amber)";
+    gradBar.style.backgroundColor = "var(--accent-amber)";
+    gradBar.style.width = Math.min(100, d.road_gradient_tenth_pct) + "%";
+  } else {
+    gradValElem.textContent = "0.0% (Flat Surface)";
+    gradValElem.style.color = "var(--text-muted)";
+    gradBar.style.width = "4px";
+  }
+
+  document.getElementById("accelVal").textContent = `${d.accelerator_pedal_pct}%`;
+  document.getElementById("accelBar").style.width = `${d.accelerator_pedal_pct}%`;
+
+  document.getElementById("brakeVal").textContent = `${d.brake_pedal_pct}%`;
+  document.getElementById("brakeBar").style.width = `${d.brake_pedal_pct}%`;
+
+  // Debounce step LEDs
+  const dbCount = d.debounce_overtemp || 0;
+  document.getElementById("debounceCounterLabel").textContent = `${dbCount} / 3 Ticks`;
+  const s1 = document.getElementById("dbStep1");
+  const s2 = document.getElementById("dbStep2");
+  const s3 = document.getElementById("dbStep3");
+  const desc = document.getElementById("debounceDesc");
+
+  s1.className = "debounce-step" + (dbCount >= 1 ? " active-1" : "");
+  s2.className = "debounce-step" + (dbCount >= 2 ? " active-2" : "");
+  s3.className = "debounce-step" + (dbCount >= 3 ? " active-3" : "");
+
+  if (dbCount === 1) {
+    desc.innerHTML = `<strong style="color: var(--accent-amber);">Tick 1/3 Anomaly Detected</strong>: Transient thermal surge under evaluation. Contactors remain safely closed.`;
+  } else if (dbCount === 2) {
+    desc.innerHTML = `<strong style="color: var(--accent-amber);">Tick 2/3 Transient Suppressed</strong>: Inverter EMI noise rejected by the debouncer. No false trip triggered!`;
+  } else if (dbCount >= 3) {
+    desc.innerHTML = `<strong style="color: var(--accent-crimson);">Tick 3/3 Persistent Hazard Confirmed!</strong> ISO 26262 emergency shutdown executed; HV contactors forced open.`;
+  } else {
+    desc.textContent = "Continuous analog sampling filter active. Single or dual-tick EMI noise transients are suppressed without false emergency trips.";
+  }
+
+  document.getElementById("faultReg").textContent = "0x" + d.fault_flags.toString(16).padStart(8, '0').toUpperCase();
+  document.getElementById("warnReg").textContent = "0x" + d.warning_flags.toString(16).padStart(8, '0').toUpperCase();
+
+  // Scrubber & Tick Counter
+  document.getElementById("scrubberSlider").value = index;
+  document.getElementById("scrubberLabel").textContent = `Tick ${d.tick} / ${telemetryData.length}`;
+  document.getElementById("chartTickInfo").textContent = `Tick: ${d.tick} / ${telemetryData.length} (${(d.tick * 0.1).toFixed(1)}s elapsed)`;
+
+  // Redraw Oscilloscope Canvas
+  drawOscilloscope(index);
+}
+
+function getStateClass(state) {
+  switch (state) {
+    case "SYS_NORMAL": return "normal";
+    case "SYS_REGEN_ADVISORY": return "regen";
+    case "SYS_LIMP_MODE": return "limp";
+    case "SYS_CRITICAL_FAULT": return "fault";
+    default: return "init";
+  }
+}
+
+// Draw Canvas Telemetry Oscilloscope
+function drawOscilloscope(activeIdx) {
+  const canvas = document.getElementById("telemetryCanvas");
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const W = rect.width;
+  const H = rect.height;
+
+  // Clear
+  ctx.fillStyle = "rgba(7, 10, 19, 0.95)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Background Grid Lines
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  ctx.lineWidth = 1;
+  const hSteps = 5;
+  for (let i = 0; i <= hSteps; i++) {
+    const y = (H / hSteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  const total = telemetryData.length;
+  if (total < 2) return;
+
+  // Scale ranges
+  // V: 55V - 65V
+  // I: -80A to +120A
+  // T: 20C - 75C
+  const getY = (val, min, max) => H - ((val - min) / (max - min)) * H;
+
+  // Center Zero-Line for Current (0A)
+  const yZeroI = getY(0, -80, 120);
+  ctx.strokeStyle = "rgba(16, 185, 129, 0.25)";
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, yZeroI);
+  ctx.lineTo(W, yZeroI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Critical Temp Warning Line (65°C)
+  const yCritT = getY(65, 20, 75);
+  ctx.strokeStyle = "rgba(255, 51, 102, 0.4)";
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, yCritT);
+  ctx.lineTo(W, yCritT);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw Channels
+  function drawTrace(color, lineWidth, extractFn) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    for (let i = 0; i < total; i++) {
+      const x = (i / (total - 1)) * W;
+      const y = extractFn(telemetryData[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // 1. Pack Voltage (Cyan): 55V to 65V
+  drawTrace("#00e5ff", 2, d => getY(d.pack_voltage_mv / 1000, 55, 65));
+
+  // 2. Pack Current (Emerald/Amber): -80A to +120A
+  drawTrace("#10b981", 1.8, d => getY(d.pack_current_ma / 1000, -80, 120));
+
+  // 3. Max Cell Temp (Crimson): 20C to 75C
+  drawTrace("#ff3366", 2.2, d => getY(d.max_temp_ddegc / 10, 20, 75));
+
+  // 4. Road Gradient (Purple): -10% to +10%
+  drawTrace("#a855f7", 1.2, d => getY(d.road_gradient_tenth_pct / 10, -10, 10));
+
+  // Active Playhead Cursor
+  const curX = (activeIdx / (total - 1)) * W;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(curX, 0);
+  ctx.lineTo(curX, H);
+  ctx.stroke();
+
+  // Glow dot at playhead on voltage curve
+  const curYV = getY(telemetryData[activeIdx].pack_voltage_mv / 1000, 55, 65);
+  ctx.fillStyle = "#00e5ff";
+  ctx.beginPath();
+  ctx.arc(curX, curYV, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Playback Controls
+function togglePlay() {
+  if (isPlaying) {
+    pauseSim();
+  } else {
+    playSim();
+  }
+}
+
+function playSim() {
+  if (currentTickIndex >= telemetryData.length - 1) {
+    currentTickIndex = 0;
+  }
+  isPlaying = true;
+  document.getElementById("playIcon").textContent = "⏸";
+  document.getElementById("playText").textContent = "Pause Mission";
+  document.getElementById("playBtn").classList.add("danger");
+
+  clearInterval(playInterval);
+  playInterval = setInterval(() => {
+    if (currentTickIndex < telemetryData.length - 1) {
+      currentTickIndex++;
+      renderTick(currentTickIndex);
+    } else {
+      pauseSim();
+    }
+  }, Math.max(20, Math.round(BASE_TICK_MS / playSpeedMultiplier)));
+}
+
+function pauseSim() {
+  isPlaying = false;
+  clearInterval(playInterval);
+  document.getElementById("playIcon").textContent = "▶";
+  document.getElementById("playText").textContent = "Play Mission";
+  document.getElementById("playBtn").classList.remove("danger");
+}
+
+function stepTick(delta) {
+  pauseSim();
+  const next = currentTickIndex + delta;
+  if (next >= 0 && next < telemetryData.length) {
+    renderTick(next);
+  }
+}
+
+function resetSim() {
+  pauseSim();
+  renderTick(0);
+}
+
+function onScrub(val) {
+  pauseSim();
+  renderTick(parseInt(val, 10));
+}
+
+function setSpeed(mult, btn) {
+  playSpeedMultiplier = mult;
+  document.querySelectorAll(".speed-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  if (isPlaying) {
+    playSim();
+  }
+}
+
+// Quick Scenario Presets
+function jumpToScenario(type) {
+  pauseSim();
+  if (type === 'full') {
+    renderTick(0);
+    playSim();
+  } else if (type === 'regen') {
+    renderTick(42);
+    playSim();
+  } else if (type === 'glitch') {
+    renderTick(34);
+    playSim();
+  } else if (type === 'emergency') {
+    renderTick(87);
+    playSim();
+  }
+}
+
+// File loader for real C-exported telemetry.json
+document.getElementById("jsonFileInput").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        telemetryData = parsed;
+        document.getElementById("sourceBadge").textContent = `Engine: Native C (${file.name})`;
+        document.getElementById("sourceBadge").className = "badge emerald";
+        document.getElementById("scrubberSlider").max = telemetryData.length - 1;
+        resetSim();
+      }
+    } catch (err) {
+      alert("Invalid JSON telemetry file format: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+// Download JSON log
+function exportCurrentTelemetry() {
+  const jsonStr = JSON.stringify(telemetryData, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bms_telemetry_run_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Load default telemetry: try fetching external telemetry.json if served over http, or fall back to pure digital twin
+async function initDashboard() {
+  initCellMatrixDOM();
+
+  // Try fetching telemetry.json (works on web servers & GitHub Pages)
+  try {
+    const res = await fetch("telemetry.json");
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        telemetryData = data;
+        document.getElementById("sourceBadge").textContent = "Engine: Native C (telemetry.json)";
+        document.getElementById("sourceBadge").className = "badge emerald";
+      }
+    }
+  } catch (e) {
+    // Fall back to pure client-side digital twin
+  }
+
+  if (telemetryData.length === 0) {
+    telemetryData = generateDeterministicDriveCycle();
+  }
+
+  document.getElementById("scrubberSlider").max = telemetryData.length - 1;
+  renderTick(0);
+
+  // Resize canvas handler
+  window.addEventListener("resize", () => {
+    drawOscilloscope(currentTickIndex);
+  });
+}
+
+window.addEventListener("DOMContentLoaded", initDashboard);
+</script>
+
+</body>
+</html>

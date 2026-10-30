@@ -16,8 +16,21 @@ static const char * bms_state_to_string(bms_state_t state);
 static const char * bms_state_to_color(bms_state_t state);
 static void print_soc_bar(uint16_t soc_deci_pct);
 
+static bool s_json_mode = false;
+static bool s_first_json_entry = true;
+
+void hal_display_set_json_mode(bool json_mode)
+{
+    s_json_mode = json_mode;
+}
+
 bms_status_t hal_display_init(void)
 {
+    if (s_json_mode) {
+        printf("[\n");
+        s_first_json_entry = true;
+        return BMS_STATUS_OK;
+    }
     printf("\n%s================================================================================%s\n", ANSI_CYAN, ANSI_RESET);
     printf("%s   ACTIVE ECO-ASSIST BATTERY MANAGEMENT SYSTEM (BMS) - DIGITAL COCKPIT HAL      %s\n", ANSI_BOLD, ANSI_RESET);
     printf("%s   Architecture: Modular C99 | Strict HAL Decoupling | Debounced Deterministic FSM%s\n", ANSI_WHITE, ANSI_RESET);
@@ -30,6 +43,51 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t *p_inst,
 {
     if ((p_inst == (void *)0) || (p_telemetry == (void *)0)) {
         return BMS_STATUS_ERR_NULL_PTR;
+    }
+
+    if (s_json_mode) {
+        if (!s_first_json_entry) {
+            printf(",\n");
+        }
+        s_first_json_entry = false;
+        printf("  {\n");
+        printf("    \"tick\": %u,\n", (unsigned int)p_inst->system_tick);
+        printf("    \"state\": \"%s\",\n", bms_state_to_string(p_inst->current_state));
+        printf("    \"previous_state\": \"%s\",\n", bms_state_to_string(p_inst->previous_state));
+        printf("    \"contactor_closed\": %s,\n", p_inst->contactor_closed ? "true" : "false");
+        printf("    \"pack_voltage_mv\": %u,\n", (unsigned int)p_inst->metrics.pack_voltage_mv);
+        printf("    \"pack_current_ma\": %ld,\n", (long)p_telemetry->pack_current_ma);
+        printf("    \"soc_deci_pct\": %u,\n", (unsigned int)p_inst->metrics.soc_deci_pct);
+        printf("    \"min_cell_mv\": %u,\n", (unsigned int)p_inst->metrics.min_cell_mv);
+        printf("    \"max_cell_mv\": %u,\n", (unsigned int)p_inst->metrics.max_cell_mv);
+        printf("    \"cell_delta_mv\": %u,\n", (unsigned int)p_inst->metrics.cell_delta_mv);
+        printf("    \"min_cell_index\": %u,\n", (unsigned int)p_inst->metrics.min_cell_index);
+        printf("    \"max_cell_index\": %u,\n", (unsigned int)p_inst->metrics.max_cell_index);
+        printf("    \"min_temp_ddegc\": %d,\n", (int)p_inst->metrics.min_temp_ddegc);
+        printf("    \"max_temp_ddegc\": %d,\n", (int)p_inst->metrics.max_temp_ddegc);
+        printf("    \"avg_temp_ddegc\": %d,\n", (int)p_inst->metrics.avg_temp_ddegc);
+        printf("    \"throttle_limit_pct\": %u,\n", (unsigned int)p_inst->metrics.throttle_limit_pct);
+        printf("    \"regen_torque_bias_pct\": %u,\n", (unsigned int)p_inst->metrics.regen_torque_bias_pct);
+        printf("    \"regen_advisory\": %u,\n", (unsigned int)p_inst->regen_advisory);
+        printf("    \"road_gradient_tenth_pct\": %d,\n", (int)p_telemetry->road_gradient_tenth_pct);
+        printf("    \"vehicle_speed_tenth_kph\": %u,\n", (unsigned int)p_telemetry->vehicle_speed_tenth_kph);
+        printf("    \"accelerator_pedal_pct\": %u,\n", (unsigned int)p_telemetry->accelerator_pedal_pct);
+        printf("    \"brake_pedal_pct\": %u,\n", (unsigned int)p_telemetry->brake_pedal_pct);
+        printf("    \"fault_flags\": %u,\n", (unsigned int)p_inst->fault_flags);
+        printf("    \"warning_flags\": %u,\n", (unsigned int)p_inst->warning_flags);
+        printf("    \"debounce_overtemp\": %u,\n", (unsigned int)p_inst->debounce.overtemp_fault_ticks);
+        printf("    \"cell_voltages_mv\": [");
+        for (uint8_t i = 0U; i < BMS_CELL_COUNT; ++i) {
+            printf("%u%s", (unsigned int)p_telemetry->cell_voltages_mv[i], (i + 1U < BMS_CELL_COUNT) ? ", " : "");
+        }
+        printf("],\n");
+        printf("    \"cell_temperatures_ddegc\": [");
+        for (uint8_t i = 0U; i < BMS_CELL_COUNT; ++i) {
+            printf("%d%s", (int)p_telemetry->cell_temperatures_ddegc[i], (i + 1U < BMS_CELL_COUNT) ? ", " : "");
+        }
+        printf("]\n");
+        printf("  }");
+        return BMS_STATUS_OK;
     }
 
     const bms_pack_metrics_t *p_met = &p_inst->metrics;
@@ -129,6 +187,11 @@ void hal_display_render_summary(const bms_core_instance_t *p_inst,
                                 uint32_t total_ticks)
 {
     if (p_inst == (void *)0) {
+        return;
+    }
+
+    if (s_json_mode) {
+        printf("\n]\n");
         return;
     }
 
