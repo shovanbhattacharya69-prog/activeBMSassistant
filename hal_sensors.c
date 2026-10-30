@@ -8,13 +8,13 @@ bms_status_t hal_sensors_init(void)
     return BMS_STATUS_OK;
 }
 
-void hal_sensors_set_noise_injection(const bool enable_noise)
+void hal_sensors_set_noise_injection(bool enable_noise)
 {
     s_noise_injection_enabled = enable_noise;
 }
 
-bms_status_t hal_sensors_read(const uint32_t tick,
-                             bms_sensor_telemetry_t * const p_telemetry)
+bms_status_t hal_sensors_read(uint32_t tick,
+                             bms_sensor_telemetry_t *p_telemetry)
 {
     if (p_telemetry == (void *)0) {
         return BMS_STATUS_ERR_NULL_PTR;

@@ -53,25 +53,21 @@ typedef enum {
     REGEN_ADVISORY_DECEL_BUFFER
 } bms_regen_advisory_t;
 
-typedef enum {
-    BMS_FAULT_NONE              = 0x00000000U,
-    BMS_FAULT_OVERTEMP_CRIT     = 0x00000001U,
-    BMS_FAULT_UNDERTEMP_CRIT    = 0x00000002U,
-    BMS_FAULT_CELL_UNDERVOLT    = 0x00000004U,
-    BMS_FAULT_CELL_OVERVOLT     = 0x00000008U,
-    BMS_FAULT_OVERCURRENT_DISC  = 0x00000010U,
-    BMS_FAULT_OVERCURRENT_CHG   = 0x00000020U,
-    BMS_FAULT_SENSOR_COMM_LOSS  = 0x00000040U,
-    BMS_FAULT_CELL_IMBALANCE    = 0x00000080U
-} bms_fault_mask_t;
+#define BMS_FAULT_NONE                       ((uint32_t)0x00000000U)
+#define BMS_FAULT_OVERTEMP_CRIT              ((uint32_t)0x00000001U)
+#define BMS_FAULT_UNDERTEMP_CRIT             ((uint32_t)0x00000002U)
+#define BMS_FAULT_CELL_UNDERVOLT             ((uint32_t)0x00000004U)
+#define BMS_FAULT_CELL_OVERVOLT              ((uint32_t)0x00000008U)
+#define BMS_FAULT_OVERCURRENT_DISC           ((uint32_t)0x00000010U)
+#define BMS_FAULT_OVERCURRENT_CHG            ((uint32_t)0x00000020U)
+#define BMS_FAULT_SENSOR_COMM_LOSS           ((uint32_t)0x00000040U)
+#define BMS_FAULT_CELL_IMBALANCE             ((uint32_t)0x00000080U)
 
-typedef enum {
-    BMS_WARN_NONE               = 0x00000000U,
-    BMS_WARN_TEMP_HIGH          = 0x00000001U,
-    BMS_WARN_SOC_LOW            = 0x00000002U,
-    BMS_WARN_CELL_DELTA_HIGH    = 0x00000004U,
-    BMS_WARN_POWER_DERATED      = 0x00000008U
-} bms_warn_mask_t;
+#define BMS_WARN_NONE                        ((uint32_t)0x00000000U)
+#define BMS_WARN_TEMP_HIGH                   ((uint32_t)0x00000001U)
+#define BMS_WARN_SOC_LOW                     ((uint32_t)0x00000002U)
+#define BMS_WARN_CELL_DELTA_HIGH             ((uint32_t)0x00000004U)
+#define BMS_WARN_POWER_DERATED               ((uint32_t)0x00000008U)
 
 typedef struct {
     uint16_t cell_voltages_mv[BMS_CELL_COUNT];

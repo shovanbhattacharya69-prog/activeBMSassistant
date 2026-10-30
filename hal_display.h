@@ -9,11 +9,11 @@ extern "C" {
 
 bms_status_t hal_display_init(void);
 
-bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
-                                     const bms_sensor_telemetry_t * const p_telemetry);
+bms_status_t hal_display_render_tick(const bms_core_instance_t *p_inst,
+                                     const bms_sensor_telemetry_t *p_telemetry);
 
-void hal_display_render_summary(const bms_core_instance_t * const p_inst,
-                                const uint32_t total_ticks);
+void hal_display_render_summary(const bms_core_instance_t *p_inst,
+                                uint32_t total_ticks);
 
 #ifdef __cplusplus
 }

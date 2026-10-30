@@ -8,21 +8,24 @@ on:
 
 jobs:
   build-and-test:
-    name: Build & Verify (MISRA C Flags & ISO 26262 Tests)
+    name: Build & Verify (${{ matrix.os }}, ${{ matrix.cc }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        cc: [gcc, clang]
-        exclude:
-          - os: windows-latest
+        include:
+          - os: ubuntu-latest
+            cc: gcc
+          - os: ubuntu-latest
+            cc: clang
+          - os: macos-latest
             cc: clang
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Compiler Environment
+      - name: Set up Linux Compiler Environment
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update

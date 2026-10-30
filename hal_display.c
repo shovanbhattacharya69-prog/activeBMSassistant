@@ -12,9 +12,9 @@
 #define ANSI_BG_YELLOW      "\033[43;1;30m"
 #define ANSI_BG_CYAN        "\033[46;1;30m"
 
-static const char * bms_state_to_string(const bms_state_t state);
-static const char * bms_state_to_color(const bms_state_t state);
-static void print_soc_bar(const uint16_t soc_deci_pct);
+static const char * bms_state_to_string(bms_state_t state);
+static const char * bms_state_to_color(bms_state_t state);
+static void print_soc_bar(uint16_t soc_deci_pct);
 
 bms_status_t hal_display_init(void)
 {
@@ -25,14 +25,14 @@ bms_status_t hal_display_init(void)
     return BMS_STATUS_OK;
 }
 
-bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
-                                     const bms_sensor_telemetry_t * const p_telemetry)
+bms_status_t hal_display_render_tick(const bms_core_instance_t *p_inst,
+                                     const bms_sensor_telemetry_t *p_telemetry)
 {
     if ((p_inst == (void *)0) || (p_telemetry == (void *)0)) {
         return BMS_STATUS_ERR_NULL_PTR;
     }
 
-    const bms_pack_metrics_t * const p_met = &p_inst->metrics;
+    const bms_pack_metrics_t *p_met = &p_inst->metrics;
 
     const uint32_t pack_v_int = p_met->pack_voltage_mv / 1000U;
     const uint32_t pack_v_rem = (p_met->pack_voltage_mv % 1000U) / 10U;
@@ -125,8 +125,8 @@ bms_status_t hal_display_render_tick(const bms_core_instance_t * const p_inst,
     return BMS_STATUS_OK;
 }
 
-void hal_display_render_summary(const bms_core_instance_t * const p_inst,
-                                const uint32_t total_ticks)
+void hal_display_render_summary(const bms_core_instance_t *p_inst,
+                                uint32_t total_ticks)
 {
     if (p_inst == (void *)0) {
         return;
@@ -170,7 +170,7 @@ void hal_display_render_summary(const bms_core_instance_t * const p_inst,
     printf("%s================================================================================%s\n\n", ANSI_CYAN, ANSI_RESET);
 }
 
-static const char * bms_state_to_string(const bms_state_t state)
+static const char * bms_state_to_string(bms_state_t state)
 {
     switch (state) {
         case SYS_INIT:           return "SYS_INIT";
@@ -182,7 +182,7 @@ static const char * bms_state_to_string(const bms_state_t state)
     }
 }
 
-static const char * bms_state_to_color(const bms_state_t state)
+static const char * bms_state_to_color(bms_state_t state)
 {
     switch (state) {
         case SYS_INIT:           return ANSI_WHITE;
@@ -194,7 +194,7 @@ static const char * bms_state_to_color(const bms_state_t state)
     }
 }
 
-static void print_soc_bar(const uint16_t soc_deci_pct)
+static void print_soc_bar(uint16_t soc_deci_pct)
 {
     const uint16_t blocks = (uint16_t)((soc_deci_pct + 50U) / 100U);
     printf("SOC: %2u.%u%% [",

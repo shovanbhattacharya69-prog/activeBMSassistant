@@ -1,24 +1,24 @@
 #include "bms_core.h"
 
-static void bms_calculate_cell_metrics(bms_pack_metrics_t * const p_metrics,
-                                       const bms_sensor_telemetry_t * const p_telemetry);
+static void bms_calculate_cell_metrics(bms_pack_metrics_t *p_metrics,
+                                       const bms_sensor_telemetry_t *p_telemetry);
 
-static void bms_update_soc(bms_pack_metrics_t * const p_metrics,
-                           const int32_t current_ma);
+static void bms_update_soc(bms_pack_metrics_t *p_metrics,
+                           int32_t current_ma);
 
-static void bms_debounce_faults(bms_core_instance_t * const p_inst,
-                                const bms_sensor_telemetry_t * const p_telemetry);
+static void bms_debounce_faults(bms_core_instance_t *p_inst,
+                                const bms_sensor_telemetry_t *p_telemetry);
 
-static void bms_evaluate_eco_advisory(bms_core_instance_t * const p_inst,
-                                      const bms_sensor_telemetry_t * const p_telemetry);
+static void bms_evaluate_eco_advisory(bms_core_instance_t *p_inst,
+                                      const bms_sensor_telemetry_t *p_telemetry);
 
-static void bms_fsm_transition(bms_core_instance_t * const p_inst,
-                               const bms_state_t new_state);
+static void bms_fsm_transition(bms_core_instance_t *p_inst,
+                               bms_state_t new_state);
 
-static void bms_fsm_process(bms_core_instance_t * const p_inst,
-                            const bms_sensor_telemetry_t * const p_telemetry);
+static void bms_fsm_process(bms_core_instance_t *p_inst,
+                            const bms_sensor_telemetry_t *p_telemetry);
 
-bms_status_t bms_core_init(bms_core_instance_t * const p_inst)
+bms_status_t bms_core_init(bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return BMS_STATUS_ERR_NULL_PTR;
@@ -56,8 +56,8 @@ bms_status_t bms_core_init(bms_core_instance_t * const p_inst)
     return BMS_STATUS_OK;
 }
 
-bms_status_t bms_core_step(bms_core_instance_t * const p_inst,
-                          const bms_sensor_telemetry_t * const p_telemetry)
+bms_status_t bms_core_step(bms_core_instance_t *p_inst,
+                          const bms_sensor_telemetry_t *p_telemetry)
 {
     if ((p_inst == (void *)0) || (p_telemetry == (void *)0)) {
         return BMS_STATUS_ERR_NULL_PTR;
@@ -81,7 +81,7 @@ bms_status_t bms_core_step(bms_core_instance_t * const p_inst,
     return BMS_STATUS_OK;
 }
 
-bms_state_t bms_core_get_state(const bms_core_instance_t * const p_inst)
+bms_state_t bms_core_get_state(const bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return SYS_CRITICAL_FAULT;
@@ -89,7 +89,7 @@ bms_state_t bms_core_get_state(const bms_core_instance_t * const p_inst)
     return p_inst->current_state;
 }
 
-const bms_pack_metrics_t * bms_core_get_metrics(const bms_core_instance_t * const p_inst)
+const bms_pack_metrics_t * bms_core_get_metrics(const bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return (const bms_pack_metrics_t *)0;
@@ -97,7 +97,7 @@ const bms_pack_metrics_t * bms_core_get_metrics(const bms_core_instance_t * cons
     return &p_inst->metrics;
 }
 
-uint32_t bms_core_get_faults(const bms_core_instance_t * const p_inst)
+uint32_t bms_core_get_faults(const bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return 0xFFFFFFFFU;
@@ -105,7 +105,7 @@ uint32_t bms_core_get_faults(const bms_core_instance_t * const p_inst)
     return p_inst->fault_flags;
 }
 
-uint32_t bms_core_get_warnings(const bms_core_instance_t * const p_inst)
+uint32_t bms_core_get_warnings(const bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return 0xFFFFFFFFU;
@@ -113,7 +113,7 @@ uint32_t bms_core_get_warnings(const bms_core_instance_t * const p_inst)
     return p_inst->warning_flags;
 }
 
-bool bms_core_is_contactor_closed(const bms_core_instance_t * const p_inst)
+bool bms_core_is_contactor_closed(const bms_core_instance_t *p_inst)
 {
     if (p_inst == (void *)0) {
         return false;
@@ -121,8 +121,8 @@ bool bms_core_is_contactor_closed(const bms_core_instance_t * const p_inst)
     return p_inst->contactor_closed;
 }
 
-static void bms_calculate_cell_metrics(bms_pack_metrics_t * const p_metrics,
-                                       const bms_sensor_telemetry_t * const p_telemetry)
+static void bms_calculate_cell_metrics(bms_pack_metrics_t *p_metrics,
+                                       const bms_sensor_telemetry_t *p_telemetry)
 {
     uint32_t pack_volt_accum = 0U;
     int32_t  temp_accum      = 0;
@@ -176,8 +176,8 @@ static void bms_calculate_cell_metrics(bms_pack_metrics_t * const p_metrics,
     p_metrics->avg_temp_ddegc  = (int16_t)(temp_accum / (int32_t)BMS_CELL_COUNT);
 }
 
-static void bms_update_soc(bms_pack_metrics_t * const p_metrics,
-                           const int32_t current_ma)
+static void bms_update_soc(bms_pack_metrics_t *p_metrics,
+                           int32_t current_ma)
 {
     const int32_t delta_deci_pct = -(current_ma) / 25000;
     int32_t new_soc = (int32_t)p_metrics->soc_deci_pct + delta_deci_pct;
@@ -191,18 +191,18 @@ static void bms_update_soc(bms_pack_metrics_t * const p_metrics,
     p_metrics->soc_deci_pct = (uint16_t)new_soc;
 }
 
-static void bms_debounce_faults(bms_core_instance_t * const p_inst,
-                                const bms_sensor_telemetry_t * const p_telemetry)
+static void bms_debounce_faults(bms_core_instance_t *p_inst,
+                                const bms_sensor_telemetry_t *p_telemetry)
 {
-    bms_debounce_counters_t * const p_deb = &p_inst->debounce;
-    const bms_pack_metrics_t * const p_met = &p_inst->metrics;
+    bms_debounce_counters_t *p_deb = &p_inst->debounce;
+    const bms_pack_metrics_t *p_met = &p_inst->metrics;
 
     if (p_met->max_temp_ddegc >= BMS_TEMP_CRITICAL_HIGH_DDEGC) {
         if (p_deb->overtemp_fault_ticks < 255U) {
             p_deb->overtemp_fault_ticks++;
         }
         if (p_deb->overtemp_fault_ticks >= BMS_DEBOUNCE_FAULT_LIMIT) {
-            p_inst->fault_flags |= (uint32_t)BMS_FAULT_OVERTEMP_CRIT;
+            p_inst->fault_flags |= BMS_FAULT_OVERTEMP_CRIT;
         }
     } else {
         p_deb->overtemp_fault_ticks = 0U;
@@ -213,7 +213,7 @@ static void bms_debounce_faults(bms_core_instance_t * const p_inst,
             p_deb->undervolt_fault_ticks++;
         }
         if (p_deb->undervolt_fault_ticks >= BMS_DEBOUNCE_FAULT_LIMIT) {
-            p_inst->fault_flags |= (uint32_t)BMS_FAULT_CELL_UNDERVOLT;
+            p_inst->fault_flags |= BMS_FAULT_CELL_UNDERVOLT;
         }
     } else {
         p_deb->undervolt_fault_ticks = 0U;
@@ -224,7 +224,7 @@ static void bms_debounce_faults(bms_core_instance_t * const p_inst,
             p_deb->overvolt_fault_ticks++;
         }
         if (p_deb->overvolt_fault_ticks >= BMS_DEBOUNCE_FAULT_LIMIT) {
-            p_inst->fault_flags |= (uint32_t)BMS_FAULT_CELL_OVERVOLT;
+            p_inst->fault_flags |= BMS_FAULT_CELL_OVERVOLT;
         }
     } else {
         p_deb->overvolt_fault_ticks = 0U;
@@ -237,9 +237,9 @@ static void bms_debounce_faults(bms_core_instance_t * const p_inst,
         }
         if (p_deb->overcurrent_fault_ticks >= BMS_DEBOUNCE_FAULT_LIMIT) {
             if (p_telemetry->pack_current_ma > 0) {
-                p_inst->fault_flags |= (uint32_t)BMS_FAULT_OVERCURRENT_DISC;
+                p_inst->fault_flags |= BMS_FAULT_OVERCURRENT_DISC;
             } else {
-                p_inst->fault_flags |= (uint32_t)BMS_FAULT_OVERCURRENT_CHG;
+                p_inst->fault_flags |= BMS_FAULT_OVERCURRENT_CHG;
             }
         }
     } else {
@@ -247,7 +247,7 @@ static void bms_debounce_faults(bms_core_instance_t * const p_inst,
     }
 
     if (!p_telemetry->sensor_comm_ok) {
-        p_inst->fault_flags |= (uint32_t)BMS_FAULT_SENSOR_COMM_LOSS;
+        p_inst->fault_flags |= BMS_FAULT_SENSOR_COMM_LOSS;
     }
 
     if (p_met->max_temp_ddegc >= BMS_TEMP_WARN_HIGH_DDEGC) {
@@ -255,27 +255,27 @@ static void bms_debounce_faults(bms_core_instance_t * const p_inst,
             p_deb->overtemp_warn_ticks++;
         }
         if (p_deb->overtemp_warn_ticks >= BMS_DEBOUNCE_FAULT_LIMIT) {
-            p_inst->warning_flags |= (uint32_t)BMS_WARN_TEMP_HIGH;
+            p_inst->warning_flags |= BMS_WARN_TEMP_HIGH;
         }
     } else {
         p_deb->overtemp_warn_ticks = 0U;
     }
 
     if (p_met->soc_deci_pct <= BMS_SOC_LIMP_THRESHOLD_DPCT) {
-        p_inst->warning_flags |= (uint32_t)BMS_WARN_SOC_LOW;
+        p_inst->warning_flags |= BMS_WARN_SOC_LOW;
     } else {
-        p_inst->warning_flags &= ~((uint32_t)BMS_WARN_SOC_LOW);
+        p_inst->warning_flags &= ~BMS_WARN_SOC_LOW;
     }
 
     if (p_met->cell_delta_mv >= BMS_CELL_DELTA_WARN_MV) {
-        p_inst->warning_flags |= (uint32_t)BMS_WARN_CELL_DELTA_HIGH;
+        p_inst->warning_flags |= BMS_WARN_CELL_DELTA_HIGH;
     } else {
-        p_inst->warning_flags &= ~((uint32_t)BMS_WARN_CELL_DELTA_HIGH);
+        p_inst->warning_flags &= ~BMS_WARN_CELL_DELTA_HIGH;
     }
 }
 
-static void bms_evaluate_eco_advisory(bms_core_instance_t * const p_inst,
-                                      const bms_sensor_telemetry_t * const p_telemetry)
+static void bms_evaluate_eco_advisory(bms_core_instance_t *p_inst,
+                                      const bms_sensor_telemetry_t *p_telemetry)
 {
     const bool is_downhill = (p_telemetry->road_gradient_tenth_pct <= BMS_ECO_DESCENT_GRADIENT_THRESHOLD_D);
     const bool is_speed_adequate = (p_telemetry->vehicle_speed_tenth_kph >= BMS_ECO_MIN_SPEED_D_KPH);
@@ -301,8 +301,8 @@ static void bms_evaluate_eco_advisory(bms_core_instance_t * const p_inst,
     }
 }
 
-static void bms_fsm_transition(bms_core_instance_t * const p_inst,
-                               const bms_state_t new_state)
+static void bms_fsm_transition(bms_core_instance_t *p_inst,
+                               bms_state_t new_state)
 {
     p_inst->current_state = new_state;
 
@@ -320,7 +320,7 @@ static void bms_fsm_transition(bms_core_instance_t * const p_inst,
         case SYS_LIMP_MODE:
             p_inst->contactor_closed            = true;
             p_inst->metrics.throttle_limit_pct  = 30U;
-            p_inst->warning_flags              |= (uint32_t)BMS_WARN_POWER_DERATED;
+            p_inst->warning_flags              |= BMS_WARN_POWER_DERATED;
             break;
 
         case SYS_CRITICAL_FAULT:
@@ -337,8 +337,8 @@ static void bms_fsm_transition(bms_core_instance_t * const p_inst,
     }
 }
 
-static void bms_fsm_process(bms_core_instance_t * const p_inst,
-                            const bms_sensor_telemetry_t * const p_telemetry)
+static void bms_fsm_process(bms_core_instance_t *p_inst,
+                            const bms_sensor_telemetry_t *p_telemetry)
 {
     if ((p_inst->fault_flags != BMS_FAULT_NONE) &&
         (p_inst->current_state != SYS_CRITICAL_FAULT)) {
@@ -364,10 +364,10 @@ static void bms_fsm_process(bms_core_instance_t * const p_inst,
 
         case SYS_NORMAL:
         {
-            if ((p_inst->warning_flags & (uint32_t)BMS_WARN_TEMP_HIGH) != 0U) {
+            if ((p_inst->warning_flags & BMS_WARN_TEMP_HIGH) != 0U) {
                 bms_fsm_transition(p_inst, SYS_LIMP_MODE);
             }
-            else if ((p_inst->warning_flags & (uint32_t)BMS_WARN_SOC_LOW) != 0U) {
+            else if ((p_inst->warning_flags & BMS_WARN_SOC_LOW) != 0U) {
                 bms_fsm_transition(p_inst, SYS_LIMP_MODE);
             }
             else if (p_inst->regen_advisory == REGEN_ADVISORY_DOWNHILL_GRADE) {
@@ -378,7 +378,7 @@ static void bms_fsm_process(bms_core_instance_t * const p_inst,
 
         case SYS_REGEN_ADVISORY:
         {
-            if ((p_inst->warning_flags & (uint32_t)BMS_WARN_TEMP_HIGH) != 0U) {
+            if ((p_inst->warning_flags & BMS_WARN_TEMP_HIGH) != 0U) {
                 bms_fsm_transition(p_inst, SYS_LIMP_MODE);
             }
             else if ((p_telemetry->accelerator_pedal_pct > 15U) ||
@@ -396,8 +396,8 @@ static void bms_fsm_process(bms_core_instance_t * const p_inst,
             if (temp_recovered && soc_ok) {
                 p_inst->debounce.limp_recovery_ticks++;
                 if (p_inst->debounce.limp_recovery_ticks >= BMS_DEBOUNCE_RECOVERY_LIMIT) {
-                    p_inst->warning_flags &= ~((uint32_t)BMS_WARN_TEMP_HIGH);
-                    p_inst->warning_flags &= ~((uint32_t)BMS_WARN_POWER_DERATED);
+                    p_inst->warning_flags &= ~BMS_WARN_TEMP_HIGH;
+                    p_inst->warning_flags &= ~BMS_WARN_POWER_DERATED;
                     p_inst->debounce.limp_recovery_ticks = 0U;
                     bms_fsm_transition(p_inst, SYS_NORMAL);
                 }

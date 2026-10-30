@@ -20,8 +20,8 @@ static uint32_t s_tests_passed = 0U;
 static void test_null_pointer_defensive(void)
 {
     printf("\n=== TEST CASE: NULL Pointer Defensive Boundary Checks ===\n");
-    bms_core_instance_t inst;
-    bms_sensor_telemetry_t telem;
+    bms_core_instance_t inst = {0};
+    bms_sensor_telemetry_t telem = {0};
 
     TEST_ASSERT(bms_core_init((void *)0) == BMS_STATUS_ERR_NULL_PTR,
                 "bms_core_init rejects NULL instance");
@@ -42,8 +42,8 @@ static void test_null_pointer_defensive(void)
 static void test_pointer_array_metrics(void)
 {
     printf("\n=== TEST CASE: Pointer-Based Cell Array Traversal Metrics ===\n");
-    bms_core_instance_t inst;
-    bms_sensor_telemetry_t telem;
+    bms_core_instance_t inst = {0};
+    bms_sensor_telemetry_t telem = {0};
 
     (void)bms_core_init(&inst);
 
@@ -73,8 +73,8 @@ static void test_pointer_array_metrics(void)
 static void test_sensor_debounce_noise_rejection(void)
 {
     printf("\n=== TEST CASE: Transient EMI Noise Rejection (2-Tick Spike) ===\n");
-    bms_core_instance_t inst;
-    bms_sensor_telemetry_t telem;
+    bms_core_instance_t inst = {0};
+    bms_sensor_telemetry_t telem = {0};
 
     (void)bms_core_init(&inst);
 
@@ -111,8 +111,8 @@ static void test_sensor_debounce_noise_rejection(void)
 static void test_sensor_debounce_trip_and_interlock(void)
 {
     printf("\n=== TEST CASE: 3-Tick Debounced Fault Trip & Contactor Interlock ===\n");
-    bms_core_instance_t inst;
-    bms_sensor_telemetry_t telem;
+    bms_core_instance_t inst = {0};
+    bms_sensor_telemetry_t telem = {0};
 
     (void)bms_core_init(&inst);
 
@@ -143,7 +143,7 @@ static void test_sensor_debounce_trip_and_interlock(void)
                 "Fault Tick 3/3: FSM successfully transitioned to SYS_CRITICAL_FAULT");
     TEST_ASSERT(bms_core_is_contactor_closed(&inst) == false,
                 "High-Voltage Contactor FORCED OPEN (Safety Interlock)");
-    TEST_ASSERT((bms_core_get_faults(&inst) & (uint32_t)BMS_FAULT_OVERTEMP_CRIT) != 0U,
+    TEST_ASSERT((bms_core_get_faults(&inst) & BMS_FAULT_OVERTEMP_CRIT) != 0U,
                 "Critical over-temperature fault flag latched");
     TEST_ASSERT(inst.metrics.throttle_limit_pct == 0U,
                 "Traction power output throttled to 0%");
@@ -152,8 +152,8 @@ static void test_sensor_debounce_trip_and_interlock(void)
 static void test_eco_assist_regen_advisory(void)
 {
     printf("\n=== TEST CASE: Active Eco-Assist Downhill Incline Regen Biasing ===\n");
-    bms_core_instance_t inst;
-    bms_sensor_telemetry_t telem;
+    bms_core_instance_t inst = {0};
+    bms_sensor_telemetry_t telem = {0};
 
     (void)bms_core_init(&inst);
 
